@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BrotIA - Asistente de Huerta Agroecológica (Formosa y Chaco)</title>
+  <!-- jsPDF para generar el certificado en PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --verde-oscuro: #1b4332;
+      --verde-medio: #2d6a4f;
+      --verde-claro: #52b788;
+      --verde-suave: #d8f3dc;
+      --texto: #1f2937;
+      --borde: #cbd5e1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background-color: #eef5f0; color: var(--texto); line-height: 1.5; }
+
+    header {
+      background: linear-gradient(135deg, var(--verde-oscuro), var(--verde-medio));
+      color: white;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .logo-area { display: flex; align-items: center; gap: 0.85rem; }
+    
+    /* Logo Vectorial Integrado de BrotIA */
+    .app-logo-svg {
+      width: 52px;
+      height: 52px;
+      flex-shrink: 0;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+
+    .header-text h1 { font-size: 1.5rem; letter-spacing: 0.5px; }
+    .header-text small { font-size: 0.85rem; opacity: 0.9; }
+
+    nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    nav button {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+    nav button.active, nav button:hover {
+      background: white;
+      color: var(--verde-oscuro);
+    }
+
+    main { max-width: 960px; margin: 1.5rem auto; padding: 0 1rem; }
+    .tab-content { display: none; background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    .tab-content.active { display: block; }
+
+    .aviso-nea {
+      background: #fffbeb;
+      border-left: 4px solid #d97706;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      border-radius: 4px;
+    }
+
+    .chat-box {
+      height: 380px;
+      overflow-y: auto;
+      border: 1px solid var(--borde);
+      border-radius: 8px;
+      padding: 1rem;
+      background: #fafdfb;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .msg { max-width: 82%; padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.95rem; }
+    .msg.bot { background: var(--verde-suave); color: var(--verde-oscuro); align-self: flex-start; border-bottom-left-radius: 2px; }
+    .msg.user { background: var(--verde-medio); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+
+    .sugerencias { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0.75rem 0; }
+    .chip {
+      background: #e2e8f0; border: none; padding: 0.35rem 0.7rem;
+      border-radius: 16px; font-size: 0.82rem; cursor: pointer;
+    }
+    .chip:hover { background: var(--verde-claro); color: white; }
+
+    .chat-input-area { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .chat-input-area input {
+      flex: 1; padding: 0.75rem; border: 1px solid var(--borde); border-radius: 8px; font-size: 1rem;
+    }
+    .btn-primary {
+      background: var(--verde-medio); color: white; border: none;
+      padding: 0.75rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer;
+    }
+    .btn-primary:hover { background: var(--verde-oscuro); }
+    .btn-secondary {
+      background: #64748b; color: white; border: none;
+      padding: 0.65rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer;
+    }
+
+    .clase-card {
+      border: 1px solid var(--borde);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      border-left: 5px solid var(--verde-medio);
+    }
+    .clase-card h3 { color: var(--verde-oscuro); margin-bottom: 0.5rem; }
+    .clase-card ul { margin-left: 1.25rem; margin-top: 0.5rem; }
+    .clase-card li { margin-bottom: 0.35rem; }
+
+    .table-wrap { overflow-x: auto; margin-top: 1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--borde); padding: 0.6rem; text-align: left; }
+    th { background: var(--verde-oscuro); color: white; }
+    tr:nth-child(even) { background: #f8fafc; }
+
+    .pregunta-box { margin-bottom: 1.25rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .pregunta-box p { font-weight: 600; margin-bottom: 0.5rem; color: var(--verde-oscuro); }
+    .opcion-label { display: block; margin: 0.35rem 0; cursor: pointer; }
+
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      align-items: center; justify-content: center; padding: 1rem; z-index: 50;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal-card {
+      background: white; max-width: 480px; width: 100%; padding: 1.5rem;
+      border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .modal-card h3 { color: var(--verde-oscuro); margin-bottom: 0.75rem; }
+    .form-group { margin: 0.75rem 0; }
+    .form-group label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .form-group input { width: 100%; padding: 0.6rem; border: 1px solid var(--borde); border-radius: 6px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-area">
+      <!-- Logo Oficial Vectorial de BrotIA integrado -->
+      <svg class="app-logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="48" fill="#1b4332" stroke="#52b788" stroke-width="3"/>
+        <path d="M30 65 Q50 20 70 65 Q50 80 30 65 Z" fill="#52b788"/>
+        <polygon points="50,25 65,48 50,75 35,48" fill="#4ade80"/>
+        <circle cx="50" cy="50" r="12" fill="#facc15"/>
+      </svg>
+      <div class="header-text">
+        <h1>BrotIA</h1>
+        <small>Huerta Agroecológica · Formosa y Chaco (NEA)</small>
+      </div>
+    </div>
+    <nav>
+      <button class="tab-btn active" data-tab="chat">💬 Consultas</button>
+      <button class="tab-btn" data-tab="calendario">📅 Calendario</button>
+      <button class="tab-btn" data-tab="capacitacion">📚 Capacitación</button>
+      <button class="tab-btn" data-tab="evaluacion">🎓 Certificación</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="chat" class="tab-content active">
+      <div class="aviso-nea">
+        <strong>Nota regional (Formosa y Chaco):</strong> Fechas adaptadas al clima cálido del NEA. La <strong>luna y el viento</strong> se tratan como saberes tradicionales huerteros.
+      </div>
+      <div class="chat-box" id="chatBox">
+        <div class="msg bot">
+          ¡Hola! Soy <strong>BrotIA</strong>. Consultame sobre cultivos (tomate, acelga, mandioca), biopreparados (purín de ortiga, alcohol de ajo), riego o rotación.
+        </div>
+      </div>
+      <div class="sugerencias">
+        <button class="chip" onclick="enviarSugerencia('¿Cuándo y cómo siembro tomate?')">Tomate</button>
+        <button class="chip" onclick="enviarSugerencia('Distancia y cosecha de acelga')">Acelga</button>
+        <button class="chip" onclick="enviarSugerencia('Cómo hacer purín de ortiga')">Purín de ortiga</button>
+        <button class="chip" onclick="enviarSugerencia('Preparado de alcohol de ajo')">Alcohol de ajo</button>
+        <button class="chip" onclick="enviarSugerencia('Saberes tradicionales de luna y viento')">Luna y viento</button>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="userInput" placeholder="Escribí tu consulta..." onkeypress="if(event.key==='Enter') procesarConsulta()" />
+        <button class="btn-primary" onclick="procesarConsulta()">Preguntar</button>
+      </div>
+    </section>
+
+    <section id="calendario" class="tab-content">
+      <h2>Calendario de Siembra (30 Cultivos - NEA)</h2>
+      <p style="font-size: 0.9rem; margin: 0.5rem 0;">Datos basados en ProHuerta (INTA) adaptados a Formosa y Chaco.</p>
+      <input type="text" id="filtroCultivo" placeholder="Filtrar cultivo..." onkeyup="filtrarTabla()" style="width:100%; padding:0.6rem; margin-top:0.5rem; border:1px solid #cbd5e1; border-radius:6px;">
+      <div class="table-wrap">
+        <table id="tablaCultivos">
+          <thead>
+            <tr>
+              <th>Cultivo</th>
+              <th>Época (NEA)</th>
+              <th>Forma de siembra</th>
+              <th>Dist. plantas</th>
+              <th>Dist. líneas</th>
+              <th>Cosecha</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="capacitacion" class="tab-content">
+      <h2>Capacitación Integral en Huerta Agroecológica</h2>
+      <p style="margin-bottom: 1rem;">Leé atentamente las 4 clases antes de rendir la autoevaluación.</p>
+      <div id="contenedorClases"></div>
+    </section>
+
+    <section id="evaluacion" class="tab-content">
+      <h2>Autoevaluación (8 Preguntas)</h2>
+      <p style="margin-bottom: 1rem;">Se aprueba con el <strong>70%</strong> (6 respuestas correctas).</p>
+
+      <div id="estadoPrivacidad" class="aviso-nea" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+        <span id="textoPrivacidad">🔒 Privacidad: Aún no configuraste tus datos para el certificado.</span>
+        <button class="btn-secondary" onclick="abrirModalPrivacidad()">Configurar datos</button>
+      </div>
+
+      <form id="formEvaluacion"></form>
+      <div style="margin-top: 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <button type="button" class="btn-primary" onclick="corregirEvaluacion()">Finalizar y Corregir</button>
+        <button type="button" class="btn-secondary" onclick="reiniciarEvaluacion()">Reiniciar</button>
+      </div>
+
+      <div id="resultadoEvaluacion" style="margin-top: 1.25rem;"></div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="modalPrivacidad">
+    <div class="modal-card">
+      <h3>Aviso de Privacidad de Datos</h3>
+      <p style="font-size: 0.9rem; color: #334155; margin-bottom: 0.75rem;">
+        Tus datos se procesan <strong>únicamente en tu dispositivo</strong> para emitir el certificado nominal en PDF. No se guardan en servidores externos.
+      </p>
+      <div id="camposDatosPersonales">
+        <div class="form-group">
+          <label for="inputNombre">Nombre y Apellido completo:</label>
+          <input type="text" id="inputNombre" placeholder="Ej. Juan Pérez" />
+        </div>
+        <div class="form-group">
+          <label for="inputDni">DNI (sin puntos):</label>
+          <input type="text" id="inputDni" placeholder="Ej. 35123456" />
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.25rem; flex-wrap: wrap;">
+        <button type="button" class="btn-secondary" onclick="rechazarDatos()">No dar datos (solo cursar)</button>
+        <button type="button" class="btn-primary" onclick="aceptarDatos()">Aceptar y guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // BASE DE DATOS Y LÓGICA INTEGRADA (Sin dependencias externas)
+    const CULTIVOS_NEA = [
+      { nombre: "Acelga", epoca: "Todo el año (usar media sombra en verano)", siembra: "Directa o almácigo", distPlanta: "15 - 20 cm", distLinea: "40 - 50 cm", cosecha: "50 - 70 días" },
+      { nombre: "Achicoria", epoca: "Todo el año (evitar picos de calor)", siembra: "Directa", distPlanta: "10 - 15 cm", distLinea: "30 - 40 cm", cosecha: "60 - 80 días" },
+      { nombre: "Albahaca", epoca: "Primavera - Verano (Ago - Ene)", siembra: "Almácigo y trasplante", distPlanta: "20 - 25 cm", distLinea: "40 cm", cosecha: "60 - 75 días" },
+      { nombre: "Ajo", epoca: "Otoño - Invierno (Mar - May)", siembra: "Directa (dientes)", distPlanta: "10 - 15 cm", distLinea: "30 - 40 cm", cosecha: "150 - 180 días" },
+      { nombre: "Apio", epoca: "Fines de Verano - Otoño (Feb - May)", siembra: "Almácigo y trasplante", distPlanta: "20 - 25 cm", distLinea: "40 - 50 cm", cosecha: "120 - 150 días" },
+      { nombre: "Arveja", epoca: "Otoño - Invierno (Abr - Jun)", siembra: "Directa", distPlanta: "5 - 10 cm", distLinea: "40 - 50 cm", cosecha: "90 - 110 días" },
+      { nombre: "Batata", epoca: "Primavera (Ago - Nov)", siembra: "Guías o plantines", distPlanta: "30 - 40 cm", distLinea: "80 - 100 cm", cosecha: "120 - 150 días" },
+      { nombre: "Berenjena", epoca: "Fin de Invierno - Primavera (Jul - Oct)", siembra: "Almácigo y trasplante", distPlanta: "40 - 50 cm", distLinea: "70 - 80 cm", cosecha: "90 - 110 días" },
+      { nombre: "Brócoli", epoca: "Fines de Verano - Otoño (Feb - Abr)", siembra: "Almácigo y trasplante", distPlanta: "40 - 50 cm", distLinea: "60 - 70 cm", cosecha: "90 - 110 días" },
+      { nombre: "Calabacita / Anco", epoca: "Primavera - Verano (Ago - Dic)", siembra: "Directa", distPlanta: "80 - 100 cm", distLinea: "150 - 200 cm", cosecha: "90 - 120 días" },
+      { nombre: "Cebolla", epoca: "Otoño (Mar - May)", siembra: "Almácigo y trasplante", distPlanta: "10 - 12 cm", distLinea: "30 - 40 cm", cosecha: "150 - 180 días" },
+      { nombre: "Cebolla de verdeo", epoca: "Todo el año", siembra: "Directa o trasplante", distPlanta: "5 - 10 cm", distLinea: "25 - 30 cm", cosecha: "60 - 80 días" },
+      { nombre: "Choclo / Maíz", epoca: "Primavera - Verano (Ago - Ene)", siembra: "Directa", distPlanta: "25 - 30 cm", distLinea: "70 - 80 cm", cosecha: "80 - 100 días" },
+      { nombre: "Coliflor", epoca: "Fines de Verano - Otoño (Feb - Abr)", siembra: "Almácigo y trasplante", distPlanta: "40 - 50 cm", distLinea: "60 - 70 cm", cosecha: "100 - 120 días" },
+      { nombre: "Espinaca", epoca: "Otoño - Invierno (Mar - Jul)", siembra: "Directa", distPlanta: "10 - 15 cm", distLinea: "30 - 40 cm", cosecha: "45 - 60 días" },
+      { nombre: "Haba", epoca: "Otoño (Abr - May)", siembra: "Directa", distPlanta: "20 - 25 cm", distLinea: "60 - 70 cm", cosecha: "120 - 150 días" },
+      { nombre: "Lechuga", epoca: "Todo el año (variedades de verano con sombra)", siembra: "Almácigo o directa", distPlanta: "20 - 25 cm", distLinea: "30 - 40 cm", cosecha: "50 - 70 días" },
+      { nombre: "Mandioca", epoca: "Fin de Invierno - Primavera (Ago - Oct)", siembra: "Estacas", distPlanta: "80 - 100 cm", distLinea: "100 - 120 cm", cosecha: "240 - 300 días" },
+      { nombre: "Melón", epoca: "Primavera (Ago - Nov)", siembra: "Directa", distPlanta: "60 - 80 cm", distLinea: "120 - 150 cm", cosecha: "90 - 110 días" },
+      { nombre: "Morrón / Pimiento", epoca: "Fin de Invierno - Primavera (Jul - Oct)", siembra: "Almácigo y trasplante", distPlanta: "35 - 45 cm", distLinea: "60 - 70 cm", cosecha: "90 - 120 días" },
+      { nombre: "Pepino", epoca: "Primavera - Verano (Ago - Dic)", siembra: "Directa", distPlanta: "40 - 50 cm", distLinea: "100 - 120 cm", cosecha: "60 - 75 días" },
+      { nombre: "Perejil", epoca: "Todo el año", siembra: "Directa", distPlanta: "10 cm", distLinea: "25 - 30 cm", cosecha: "60 - 80 días" },
+      { nombre: "Poroto chaucha", epoca: "Primavera - Verano (Ago - Ene)", siembra: "Directa", distPlanta: "15 - 20 cm", distLinea: "50 - 60 cm", cosecha: "60 - 75 días" },
+      { nombre: "Rabanito", epoca: "Todo el año", siembra: "Directa", distPlanta: "5 - 8 cm", distLinea: "20 - 25 cm", cosecha: "25 - 35 días" },
+      { nombre: "Remolacha", epoca: "Otoño - Invierno - Primavera", siembra: "Directa o trasplante", distPlanta: "10 - 15 cm", distLinea: "30 - 40 cm", cosecha: "70 - 90 días" },
+      { nombre: "Repollo", epoca: "Fines de Verano - Otoño (Feb - May)", siembra: "Almácigo y trasplante", distPlanta: "35 - 45 cm", distLinea: "50 - 60 cm", cosecha: "90 - 110 días" },
+      { nombre: "Rúcula", epoca: "Todo el año", siembra: "Directa", distPlanta: "5 - 10 cm", distLinea: "20 - 30 cm", cosecha: "30 - 45 días" },
+      { nombre: "Sandía", epoca: "Primavera (Ago - Nov)", siembra: "Directa", distPlanta: "80 - 100 cm", distLinea: "150 - 200 cm", cosecha: "85 - 105 días" },
+      { nombre: "Tomate", epoca: "Fin de Invierno - Primavera (Jul - Oct)", siembra: "Almácigo y trasplante", distPlanta: "40 - 50 cm", distLinea: "70 - 80 cm", cosecha: "80 - 100 días" },
+      { nombre: "Zanahoria", epoca: "Otoño - Invierno (Mar - Jul)", siembra: "Directa", distPlanta: "5 - 8 cm", distLinea: "25 - 30 cm", cosecha: "90 - 110 días" }
+    ];
+
+    const BIOPREPARADOS = [
+      { nombre: "Purín de ortiga", uso: "Biofertilizante nitrogenado y estimulante.", preparacion: "Macerar 1 kg de ortiga en 10 litros de agua por 7 a 10 días. Diluir 1 en 10 para regar." },
+      { nombre: "Alcohol de ajo", uso: "Repelente preventivo de pulgones y chupadores.", preparacion: "Licuar 5 dientes de ajo en 0.5L de alcohol y 0.5L de agua. Macerar 24hs y diluir 50ml por litro de agua." },
+      { nombre: "Té de compost", uso: "Abono líquido con microorganismos benéficos.", preparacion: "Colocar 1 kg de compost en 10 litros de agua sin cloro por 24 horas y aplicar al suelo." }
+    ];
+
+    const CLASES_CAPACITACION = [
+      {
+        titulo: "Clase 1: Qué sembrar y cómo empezar",
+        contenido: [
+          "<strong>Lugar y Sol:</strong> Espacio con al menos 5 horas de sol. En verano en Formosa/Chaco usar media sombra (35-50%).",
+          "<strong>Suelo:</strong> Incorporar materia orgánica (compost) sin dar vuelta profunda al suelo.",
+          "<strong>Estacionalidad NEA:</strong> Otoño-Invierno para hojas/raíces; Primavera-Verano para frutos."
+        ]
+      },
+      {
+        titulo: "Clase 2: Siembra, distancias y riego",
+        contenido: [
+          "<strong>Método:</strong> Directa para semillas grandes y raíces; Almácigo para hortalizas delicadas.",
+          "<strong>Distancias:</strong> Respetar separación para evitar competencia por luz y humedad.",
+          "<strong>Riego:</strong> Regar temprano o al atardecer en la base de la planta. Usar mantillo (mulching)."
+        ]
+      },
+      {
+        titulo: "Clase 3: Biopreparados, rotación y asociación",
+        contenido: [
+          "<strong>Preparados:</strong> Purín de ortiga y alcohol de ajo aplicados al atardecer.",
+          "<strong>Asociación:</strong> Combinar cultivos de distinto porte (ej. tomate y albahaca).",
+          "<strong>Rotación:</strong> Alternar familias botánicas para no agotar el suelo."
+        ]
+      },
+      {
+        titulo: "Clase 4: Cosecha, semillas y saberes tradicionales",
+        contenido: [
+          "<strong>Cosecha:</strong> Escalonada en horas frescas de la mañana.",
+          "<strong>Semillas:</strong> Seleccionar de las plantas más sanas y vigorosas locales.",
+          "<strong>Tradición:</strong> La luna y el viento se consideran saberes culturales valiosos, acompañados siempre de buen manejo agronómico."
+        ]
+      }
+    ];
+
+    const PREGUNTAS_EVALUACION = [
+      { pregunta: "1. ¿Cuál es el momento más recomendable para regar en Formosa y Chaco?", opciones: ["Al mediodía con sol fuerte", "Temprano por la mañana o al atardecer", "Una vez al mes"], correcta: 1 },
+      { pregunta: "2. ¿Qué función cumple el mantillo (mulching)?", opciones: ["Conservar la humedad y frenar malezas", "Secar la tierra", "Aumentar el calor extremo"], correcta: 0 },
+      { pregunta: "3. ¿Qué cultivo se hace por siembra directa obligatoria?", opciones: ["Tomate", "Zanahoria", "Berenjena"], correcta: 1 },
+      { pregunta: "4. ¿Para qué sirve el purín de ortiga?", opciones: ["Biofertilizante nitrogenado", "Herbicida químico", "Pintura para madera"], correcta: 0 },
+      { pregunta: "5. ¿Por qué se rota la huerta?", opciones: ["Para evitar agotar nutrientes y cortar ciclos de plagas", "Para cambiar de lugar los caminos", "No sirve para nada"], correcta: 0 },
+      { pregunta: "6. ¿A qué profundidad se siembra una semilla?", opciones: ["A 20 cm exactos", "A 2 o 3 veces su tamaño", "Sobre la superficie sin tocar suelo"], correcta: 1 },
+      { pregunta: "7. ¿Qué plantas se eligen para guardar semillas?", opciones: ["Las más enfermas", "Frutos verdes sin madurar", "Las más sanas, vigorosas y adaptadas"], correcta: 2 },
+      { pregunta: "8. ¿Cómo se consideran la luna y el viento en BrotIA?", opciones: ["Como saberes tradicionales huerteros", "Como leyes científicas absolutas", "Como mitos prohibidos"], correcta: 1 }
+    ];
+
+    let usuarioDatos = { aceptoPrivacidad: false, nombre: "", dni: "" };
+    let ultimoPuntajePorcentaje = 0;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      iniciarNavegacion();
+      renderizarTablaCultivos(CULTIVOS_NEA);
+      renderizarClases();
+      renderizarEvaluacion();
+    });
+
+    function iniciarNavegacion() {
+      const botones = document.querySelectorAll(".tab-btn");
+      botones.forEach(btn => {
+        btn.addEventListener("click", () => {
+          botones.forEach(b => b.classList.remove("active"));
+          document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+          btn.classList.add("active");
+          const targetId = btn.dataset.tab;
+          const targetSection = document.getElementById(targetId);
+          if (targetSection) {
+            targetSection.classList.add("active");
+          }
+        });
+      });
+    }
+
+    function enviarSugerencia(texto) {
+      const input = document.getElementById("userInput");
+      if (input) {
+        input.value = texto;
+        procesarConsulta();
+      }
+    }
+
+    function normalizar(str) {
+      return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function procesarConsulta() {
+      const input = document.getElementById("userInput");
+      if (!input) return;
+      const q = normalizar(input.value.trim());
+      if (!q) return;
+
+      agregarMensaje(input.value.trim(), "user");
+      input.value = "";
+
+      let r = generarRespuestaDirecta(q);
+      setTimeout(() => agregarMensaje(r, "bot"), 180);
+    }
+
+    function agregarMensaje(html, tipo) {
+      const chatBox = document.getElementById("chatBox");
+      if (!chatBox) return;
+      const div = document.createElement("div");
+      div.className = `msg ${tipo}`;
+      div.innerHTML = html;
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function generarRespuestaDirecta(q) {
+      const cultivo = CULTIVOS_NEA.find(c => normalizar(c.nombre).includes(q));
+      if (cultivo) {
+        return `<strong>🌱 ${cultivo.nombre} (Guía NEA):</strong><br>• Época: ${cultivo.epoca}<br>• Siembra: ${cultivo.siembra}<br>• Distancia: ${cultivo.distPlanta} x ${cultivo.distLinea}<br>• Cosecha: ${cultivo.cosecha}`;
+      }
+      if (q.includes("ortiga") || q.includes("purin")) return `<strong>🧪 Purín de ortiga:</strong> ${BIOPREPARADOS[0].uso}<br>${BIOPREPARADOS[0].preparacion}`;
+      if (q.includes("ajo")) return `<strong>🧪 Alcohol de ajo:</strong> ${BIOPREPARADOS[1].uso}<br>${BIOPREPARADOS[1].preparacion}`;
+      if (q.includes("luna") || q.includes("viento")) return `<strong>🌙 Saberes tradicionales:</strong> La luna y el viento guían la práctica cultural huertera en el NEA, complementando el manejo técnico del suelo y agua.`;
+      if (q.includes("riego")) return `<strong>💧 Riego:</strong> Regar temprano o al atardecer en la base de la planta, usando cobertura seca.`;
+      return `No encontré ese término exacto. Probá consultando por cultivos (tomate, acelga, mandioca), biopreparados o riego.`;
+    }
+
+    function renderizarTablaCultivos(lista) {
+      const tbody = document.querySelector("#tablaCultivos tbody");
+      if (tbody) {
+        tbody.innerHTML = lista.map(c => `
+          <tr><td><strong>${c.nombre}</strong></td><td>${c.epoca}</td><td>${c.siembra}</td><td>${c.distPlanta}</td><td>${c.distLinea}</td><td>${c.cosecha}</td></tr>
+        `).join("");
+      }
+    }
+
+    function filtrarTabla() {
+      const inputFiltro = document.getElementById("filtroCultivo");
+      if (!inputFiltro) return;
+      const f = normalizar(inputFiltro.value);
+      renderizarTablaCultivos(CULTIVOS_NEA.filter(c => normalizar(c.nombre).includes(f)));
+    }
+
+    function renderizarClases() {
+      const contenedor = document.getElementById("contenedorClases");
+      if (contenedor) {
+        contenedor.innerHTML = CLASES_CAPACITACION.map(c => `
+          <div class="clase-card"><h3>${c.titulo}</h3><ul>${c.contenido.map(i => `<li>${i}</li>`).join("")}</ul></div>
+        `).join("");
+      }
+    }
+
+    function abrirModalPrivacidad() {
+      const modal = document.getElementById("modalPrivacidad");
+      if (modal) modal.classList.add("active");
+    }
+
+    function cerrarModalPrivacidad() {
+      const modal = document.getElementById("modalPrivacidad");
+      if (modal) modal.classList.remove("active");
+    }
+
+    function aceptarDatos() {
+      const nombreInput = document.getElementById("inputNombre");
+      const dniInput = document.getElementById("inputDni");
+      if (!nombreInput || !dniInput) return;
+      const nombre = nombreInput.value.trim();
+      const dni = dniInput.value.trim();
+      if (!nombre || !dni) { alert("Completá nombre y DNI."); return; }
+      usuarioDatos = { aceptoPrivacidad: true, nombre, dni };
+      const txtPriv = document.getElementById("textoPrivacidad");
+      if (txtPriv) {
+        txtPriv.innerHTML = `✅ Certificado habilitado para: <strong>${nombre}</strong> (DNI: ${dni})`;
+      }
+      cerrarModalPrivacidad();
+    }
+
+    function rechazarDatos() {
+      usuarioDatos = { aceptoPrivacidad: false, nombre: "", dni: "" };
+      const txtPriv = document.getElementById("textoPrivacidad");
+      if (txtPriv) {
+        txtPriv.innerHTML = `ℹ️ Curso sin datos personales (sin certificado).`;
+      }
+      cerrarModalPrivacidad();
+    }
+
+    function renderizarEvaluacion() {
+      const formEval = document.getElementById("formEvaluacion");
+      if (formEval) {
+        formEval.innerHTML = PREGUNTAS_EVALUACION.map((p, idx) => `
+          <div class="pregunta-box"><p>${p.pregunta}</p>${p.opciones.map((op, oIdx) => `<label class="opcion-label"><input type="radio" name="preg_${idx}" value="${oIdx}"/> ${op}</label>`).join("")}</div>
+        `).join("");
+      }
+    }
+
+    function reiniciarEvaluacion() {
+      const formEval = document.getElementById("formEvaluacion");
+      if (formEval) formEval.reset();
+      const resDiv = document.getElementById("resultadoEvaluacion");
+      if (resDiv) resDiv.innerHTML = "";
+    }
+
+    function corregirEvaluacion() {
+      let correctas = 0, sinResp = 0;
+      PREGUNTAS_EVALUACION.forEach((p, idx) => {
+        const sel = document.querySelector(`input[name="preg_${idx}"]:checked`);
+        if (!sel) sinResp++;
+        else if (parseInt(sel.value) === p.correcta) correctas++;
+      });
+      if (sinResp > 0) { alert(`Respondé todas las preguntas (${sinResp} pendientes).`); return; }
+
+      const porc = Math.round((correctas / PREGUNTAS_EVALUACION.length) * 100);
+      ultimoPuntajePorcentaje = porc;
+      const resDiv = document.getElementById("resultadoEvaluacion");
+      if (!resDiv) return;
+
+      if (porc >= 70) {
+        const btnC = usuarioDatos.aceptoPrivacidad ? `<button class="btn-primary" style="margin-top:0.75rem;" onclick="descargarCertificadoPDF()">📄 Descargar Certificado PDF</button>` : `<button class="btn-secondary" style="margin-top:0.5rem;" onclick="abrirModalPrivacidad()">Ingresar datos para Certificado</button>`;
+        resDiv.innerHTML = `<div style="background:#d8f3dc; border:1px solid #2d6a4f; padding:1rem; border-radius:8px; color:#1b4332;"><h3>🎉 ¡Aprobaste con ${porc}%!</h3>${btnC}</div>`;
+      } else {
+        resDiv.innerHTML = `<div style="background:#fee2e2; border:1px solid #dc2626; padding:1rem; border-radius:8px; color:#7f1d1d;"><h3>❌ Obtuviste ${porc}% (Necesitás 70%).</h3><p>Repasá las clases y reiniciá.</p></div>`;
+      }
+    }
+
+    // GENERACIÓN DE CERTIFICADO EN PDF CON LOGO Y TRES FIRMAS EXACTAS
+    function descargarCertificadoPDF() {
+      if (!usuarioDatos.aceptoPrivacidad || !usuarioDatos.nombre) { abrirModalPrivacidad(); return; }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+      doc.setFillColor(232, 245, 233);
+      doc.rect(0, 0, 297, 210, "F");
+
+      doc.setDrawColor(27, 67, 50);
+      doc.setLineWidth(2);
+      doc.rect(10, 10, 277, 190);
+
+      doc.setDrawColor(82, 183, 136);
+      doc.setLineWidth(0.8);
+      doc.rect(14, 14, 269, 182);
+
+      dibujarHoja(doc, 26, 28, 1);
+      dibujarHoja(doc, 271, 28, -1);
+
+      // Logo en el PDF
+      doc.setFillColor(45, 106, 79);
+      doc.circle(148.5, 30, 10, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("BrotIA", 148.5, 31.5, { align: "center" });
+
+      doc.setTextColor(27, 67, 50);
+      doc.setFontSize(22);
+      doc.text("CERTIFICADO DE APROBACIÓN", 148.5, 50, { align: "center" });
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(55, 65, 81);
+      doc.text("El presente certifica que:", 148.5, 63, { align: "center" });
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.setTextColor(20, 83, 45);
+      doc.text(usuarioDatos.nombre.toUpperCase(), 148.5, 75, { align: "center" });
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(55, 65, 81);
+      doc.text(`DNI N°: ${usuarioDatos.dni}`, 148.5, 83, { align: "center" });
+
+      doc.text("Ha completado y aprobado la capacitación en:", 148.5, 95, { align: "center" });
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(27, 67, 50);
+      doc.text("“Huerta Agroecológica Familiar en el NEA (Formosa y Chaco)”", 148.5, 103, { align: "center" });
+
+      const fechaHoy = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`Puntaje: ${ultimoPuntajePorcentaje}%  |  Fecha: ${fechaHoy}`, 148.5, 112, { align: "center" });
+
+      // Tres firmas institucionales exactas
+      const firmasY = 162;
+      const posicionesX = [65, 148.5, 232];
+      const datosFirmas = [
+        { nombre: "Amadey Alex", titulo: "Profesor en Agronomía" },
+        { nombre: "Aguilera David", titulo: "Técnico en Agroindustria" },
+        { nombre: "Zabala Matías", titulo: "Técnico en Alimentos" }
+      ];
+
+      doc.setDrawColor(27, 67, 50);
+      doc.setLineWidth(0.5);
+
+      posicionesX.forEach((x, i) => {
+        doc.line(x - 30, firmasY, x + 30, firmasY);
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(27, 67, 50);
+        doc.text(datosFirmas[i].nombre, x, firmasY + 6, { align: "center" });
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(75, 85, 99);
+        doc.text(datosFirmas[i].titulo, x, firmasY + 11, { align: "center" });
+      });
+
+      doc.save(`Certificado_BrotIA_${usuarioDatos.dni}.pdf`);
+    }
+
+    function dibujarHoja(doc, x, y, dir) {
+      doc.setFillColor(82, 183, 136);
+      doc.ellipse(x, y, 7, 3, "F");
+      doc.setFillColor(45, 106, 79);
+      doc.ellipse(x + (4 * dir), y + 4, 6, 2.5, "F");
+    }
+  </script>
+</body>
+</html>
